@@ -35,17 +35,27 @@ class FileManager:
         curses.curs_set(0)  # Скрываем курсор
         curses.start_color()
         curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_RED)   # курсор
-        curses.init_pair(2, curses.COLOR_RED, -1)                   # директории
-        curses.init_pair(3, curses.COLOR_GREEN, -1)                 # исполняемые
-        curses.init_pair(4, curses.COLOR_CYAN, curses.COLOR_BLACK)  # символические ссылки
-        curses.init_pair(5, curses.COLOR_YELLOW, -1)  # выделенные файлы
-
-        # Для пометок операций
+        
+        # Кастомные цвета
+        curses.init_color(10, 500, 500, 1000)  # пастельно-синий
+        curses.init_color(11, 500, 500, 500)  # розовый оттенок
+        curses.init_color(12, 550, 500, 300)  # лаймовый зелёный
+        curses.init_color(13, 1000, 800, 200)  # жёлто-оранжевый
+        curses.init_color(14, 300, 300, 300)   # мягкий серый
+        curses.init_color(15, 950, 900, 700)         # чёрный (для фона)
+        
+        # Пары цветов
+        curses.init_pair(1, 15, -1)    # курсор
+        curses.init_pair(2, 11, -1)  # директории — розовый оттенок
+        curses.init_pair(3, 12, -1)  # исполняемые — лаймовый
+        curses.init_pair(4, 10, curses.COLOR_BLACK)  # ссылки — пастельный синий
+        curses.init_pair(5, curses.COLOR_YELLOW, -1) # выделенные
         curses.init_pair(6, curses.COLOR_GREEN, -1)  # copy
-        curses.init_pair(7, curses.COLOR_YELLOW, -1) # move
+        curses.init_pair(7, 13, -1)   # move — жёлто-оранжевый
         curses.init_pair(8, curses.COLOR_RED, -1)    # delete
-
+        curses.init_pair(9, 14, -1)   # сообщения — мягкий серый
+        
+        
         # Буфер (clipboard) для copy/move старой функциональности
         self.clipboard = []  # список полных путей
         self.clipboard_action = None
