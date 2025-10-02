@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import locale
 from pathlib import Path
+import textwrap
 
 
 class OperationCancelled(Exception):
@@ -134,13 +135,7 @@ class FileManager:
 
             line += 1
 
-        # Строка подсказок
-        help_text = " ←: Back | →: Open/Run | q: Quit | c: Mark copy | m: Mark move | d: Mark delete | p: Execute marks | x: Clear clipboard | .: Show hidden | Space: Select "
-        try:
-            self.stdscr.addstr(self.height-2, 0, help_text[:self.width-1], curses.A_REVERSE)
-        except curses.error:
-            pass
-
+        # Подсказки больше не рисуются в строке — они доступны в popup по клавише "?"
         self.stdscr.refresh()
 
     def show_message(self, message):
@@ -157,21 +152,51 @@ class FileManager:
         except curses.error:
             pass  # если не удалось нарисовать — игнорируем
 
-    
-    
+    def show_help_popup(self):
+        # Всплывающее окно с жёсткой рамкой; открывается по клавише "?"
+        help_text = "←: Back | →: Open/Run | q: Quit | c: Mark copy | m: Mark move | d: Mark delete | p: Execute marks | x: Clear clipboard | .: Show hidden | Space: Select | r: Rename | n: New | ?: Help"
+        # Разбираем на строки по ширине окна (с отступом для рамки)
+        max_inner_w = max(10, min(self.width - 6, 50))
+        lines = textwrap.wrap(help_text, max_inner_w)
+        # Размер окна: рамка + отступы
+        win_h = len(lines) + 4
+        win_w = min(self.width - 4, max((len(ln) for ln in lines)) + 4)
+        start_y = max(0, (self.height - win_h) // 2)
+        start_x = max(0, (self.width - win_w) // 2)
+        try:
+            win = curses.newwin(win_h, win_w, start_y, start_x)
+            win.box()
+            for idx, ln in enumerate(lines):
+                try:
+                    win.addstr(1 + idx, 2, ln[:win_w-4])
+                except curses.error:
+                    pass
+            win.refresh()
+            try:
+                win.get_wch()
+            except Exception:
+                pass
+            # После закрытия — вернём управление основному окну
+            del win
+            self.stdscr.touchwin()
+            self.stdscr.refresh()
+        except curses.error:
+            # Если не удалось создать popup — просто показать сообщение обычным способом
+            self.show_message(help_text)
+
     def get_input(self, prompt, default='', none_on_cancel=False):
                             win = self.stdscr
                             try:
                                 curses.curs_set(1)  # показать курсор на время ввода
                             except curses.error:
                                 pass
-                        
+
                             try:
                                 maxy, maxx = win.getmaxyx()
                                 y = maxy - 1  # рисуем в последней строке
                                 buf = list(default)
                                 pos = len(buf)
-                        
+
                                 def render():
                                     nonlocal maxy, maxx, y
                                     maxy, maxx = win.getmaxyx()
@@ -193,7 +218,7 @@ class FileManager:
                                         win.refresh()
                                     except curses.error:
                                         pass
-                        
+
                                 while True:
                                     render()
                                     try:
@@ -202,7 +227,7 @@ class FileManager:
                                         return None if none_on_cancel else ''
                                     except curses.error:
                                         return ''.join(buf)
-                        
+
                                     if isinstance(ch, str):
                                         if ch == '\n' or ch == '\r':
                                             return ''.join(buf)
@@ -219,7 +244,7 @@ class FileManager:
                                             buf[pos:pos] = [ch]
                                             pos += 1
                                         continue
-                        
+
                                     if ch == curses.KEY_LEFT:
                                         if pos > 0:
                                             pos -= 1
@@ -314,6 +339,9 @@ class FileManager:
 
         elif key == "n":
             self.create_new_item()
+
+        elif key == "?":
+            self.show_help_popup()
 
         return True
 
@@ -667,5 +695,3 @@ def main(stdscr):
 
 if __name__ == "__main__":
     curses.wrapper(main)
-
-
