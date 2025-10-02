@@ -152,37 +152,54 @@ class FileManager:
         except curses.error:
             pass  # если не удалось нарисовать — игнорируем
 
-    def show_help_popup(self):
-        # Всплывающее окно с жёсткой рамкой; открывается по клавише "?"
-        help_text = "←: Back | →: Open/Run | q: Quit | c: Mark copy | m: Mark move | d: Mark delete | p: Execute marks | x: Clear clipboard | .: Show hidden | Space: Select | r: Rename | n: New | ?: Help"
-        # Разбираем на строки по ширине окна (с отступом для рамки)
-        max_inner_w = max(10, min(self.width - 6, 50))
-        lines = textwrap.wrap(help_text, max_inner_w)
-        # Размер окна: рамка + отступы
-        win_h = len(lines) + 4
-        win_w = min(self.width - 4, max((len(ln) for ln in lines)) + 4)
-        start_y = max(0, (self.height - win_h) // 2)
-        start_x = max(0, (self.width - win_w) // 2)
-        try:
-            win = curses.newwin(win_h, win_w, start_y, start_x)
-            win.box()
-            for idx, ln in enumerate(lines):
+    def show_help_popup(
+                self,
+                help_text="←: Вернуться | →: Войти\Запустить \n c: Отметить для копирования \n m: Отметить для перемещения \n d: Отметить для удаления \n p: Применить метки \n x: Очистить буфер \n .: Показать\Скрыть скрытые файлы \n Space: Выбрать файл \n r: Переименовать \n n: Новый файл\папка \n ?: Помощь \n q: Выход ",
+                width_ratio=0.6,
+                height_ratio=0.4,
+                padding=4
+            ):
+                # Разбираем текст на строки, учитывая переносы \n
+                lines = []
+                for part in help_text.split("\n"):
+                    wrapped = textwrap.wrap(part, max(10, int(self.width * width_ratio) - 2 * padding))
+                    if not wrapped:
+                        lines.append("")
+                    else:
+                        lines.extend(wrapped)
+            
+                # Размер окна с учётом рамки и отступов
+                win_h = len(lines) + 2 * padding
+                win_w = min(self.width - 4, max(len(ln) for ln in lines) + 2 * padding)
+            
+                # Позиция окна — центр экрана
+                start_y = max(0, (self.height - win_h) // 2)
+                start_x = max(0, (self.width - win_w) // 2)
+            
                 try:
-                    win.addstr(1 + idx, 2, ln[:win_w-4])
+                    win = curses.newwin(win_h, win_w, start_y, start_x)
+                    win.box()
+            
+                    # Отрисовка текста с отступами
+                    for idx, ln in enumerate(lines):
+                        try:
+                            win.addstr(padding - 1 + idx, padding, ln[:win_w - 2 * padding])
+                        except curses.error:
+                            pass
+            
+                    win.refresh()
+                    try:
+                        win.get_wch()
+                    except Exception:
+                        pass
+            
+                    # Возврат в основное окно
+                    del win
+                    self.stdscr.touchwin()
+                    self.stdscr.refresh()
+            
                 except curses.error:
-                    pass
-            win.refresh()
-            try:
-                win.get_wch()
-            except Exception:
-                pass
-            # После закрытия — вернём управление основному окну
-            del win
-            self.stdscr.touchwin()
-            self.stdscr.refresh()
-        except curses.error:
-            # Если не удалось создать popup — просто показать сообщение обычным способом
-            self.show_message(help_text)
+                    self.show_message(help_text)
 
     def get_input(self, prompt, default='', none_on_cancel=False):
                             win = self.stdscr
@@ -695,3 +712,4 @@ def main(stdscr):
 
 if __name__ == "__main__":
     curses.wrapper(main)
+
